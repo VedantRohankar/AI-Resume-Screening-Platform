@@ -4,8 +4,18 @@ import jwt from "jsonwebtoken";
 
 export const register = async (req,res)=>{
   try {
-    const {username, email, password} = req.body;
+    const {username, email, password, role} = req.body;
 
+     // Allow only candidate and recruiter roles
+    const allowedRoles = ["candidate", "recruiter"];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({
+        message: "Role must be candidate or recruiter",
+      });
+    }
+
+     // Check if user already exists
     const existingUser = await findUserEmail(email);
     if(existingUser){
       return res.status(400).json({
@@ -13,12 +23,15 @@ export const register = async (req,res)=>{
       });
     }
 
+    // Hash Password
     const hashedPassword = await bcrypt.hash(password,10);
 
+    // Create User
     const user = await createUser(
       username,
       email,
-      hashedPassword
+      hashedPassword,
+      role
     );
      res.status(200).json({
       message:"User Registered Successfully",
@@ -26,6 +39,7 @@ export const register = async (req,res)=>{
         id: user.id,
         username: user.username,
         email: user.email,
+        role: user.role,
         },
      });
 
@@ -67,7 +81,7 @@ export const login = async(req,res)=>{
       {expiresIn:"1h"}
     );
 
-    res.json({
+    res.status(200).json({
       message:"Login Successful",
       token,
       user:{

@@ -27,9 +27,14 @@ CREATE TABLE profiles(
   address TEXT,
   bio TEXT,
   experience TEXT,
-  skills TEXT,
+  education TEXT,
+  skills TEXT[],
+  linkedin_url TEXT,
+  github_url TEXT,
+  portfolio_url TEXT,
   profile_photo TEXT,
 
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY (user_id)
@@ -67,7 +72,7 @@ CREATE TABLE jobs(
 
   FOREIGN KEY (company_id)
   REFERENCES companies(id)
-  ON DELETE CASCADE,
+  ON DELETE CASCADE
 );
 
 CREATE TABLE resumes(

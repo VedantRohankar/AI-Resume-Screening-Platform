@@ -1,13 +1,13 @@
 import db from "../config/db.js";
 
-export const createUser = async(username,email,password)=>{
+export const createUser = async(username,email,password,role)=>{
   const query=`
   INSERT INTO users (username,email,password,role)
-  VALUES ($1, $2, $3, 'user')
+  VALUES ($1, $2, $3, $4)
   RETURNING *;
   `;
 
-const values = [username,email,password];
+const values = [username,email,password,role];
 
 const result = await db.query(query,values);
 return result.rows[0];
