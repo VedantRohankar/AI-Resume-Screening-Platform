@@ -80,6 +80,7 @@ CREATE TABLE resumes(
   candidate_id INT NOT NULL,
   resume_url TEXT NOT NULL,
   file_name VARCHAR(255),
+  file_size INT,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
   FOREIGN KEY(candidate_id)
@@ -118,4 +119,17 @@ CREATE TABLE resume_analysis(
   ON DELETE CASCADE
 );
 
+CREATE TABLE ai_resume_analysis (
+    id SERIAL PRIMARY KEY,
+    candidate_id INT UNIQUE NOT NULL,
+    extracted_text TEXT,
+    skills TEXT[],
+    education TEXT,
+    experience TEXT,
+    summary TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
+    FOREIGN KEY (candidate_id)
+    REFERENCES users(id)
+    ON DELETE CASCADE
+);

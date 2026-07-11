@@ -6,6 +6,7 @@ import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
+import resumeRoutes from "./routes/resumeRoutes.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use("/api/auth",authRoutes);
 app.use("/api/users",userRoutes);
 app.use("/api/admin",adminRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/resume",resumeRoutes);
 
 app.get("/",(req,res)=>{
   res.send("Graphology API Running");
