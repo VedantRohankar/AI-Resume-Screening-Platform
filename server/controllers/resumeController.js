@@ -30,7 +30,6 @@ export const uploadResume = async (req,res) => {
         await deleteResume(candidateId);
       }
 
-
       const resume = await createResume(
         candidateId,
         req.file.path,
@@ -51,3 +50,82 @@ export const uploadResume = async (req,res) => {
     
   }
 };
+
+export const getResume = async (req,res) => {
+  try {
+    const candidateId = req.user.id;
+
+    const resume = await getResumeByCandidateId(candidateId);
+
+    if (!resume) {
+      return res.status(404).json({
+        message:"Resume not Found",
+      })
+    }
+
+    res.status(200).json(resume);
+
+
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message:"Server Error",
+    });
+  }
+};
+
+export const removeResume = async (req,res) => {
+  try {
+    const candidateId = req.user.id;
+    const resume = await getResumeByCandidateId(candidateId);
+
+    if (!resume) {
+      return res.status(404).json({
+        message:"Resume not Found",
+      })
+    }
+
+    const filePath = path.join(resume.resume_url);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    
+    await deleteResume(candidateId);
+
+     res.status(200).json({
+      message: "Resume deleted successfully",
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message:"Server Error",
+    });
+  }
+};
+
+export const downloadResume = async (req,res) => {
+  try {
+
+    const candidateId = req.user.id;
+    const resume = await getResumeByCandidateId(candidateId);
+
+     if (!resume) {
+      return res.status(404).json({
+        message: "Resume not found",
+      });
+    }
+
+    const filePath = path.resolve(resume.resume_url);
+
+    res.download(filePath,resume.file_name);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      message:"Server Error",
+    });
+  }
+}
