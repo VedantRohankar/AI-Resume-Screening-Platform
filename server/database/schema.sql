@@ -42,19 +42,30 @@ CREATE TABLE profiles(
   ON DELETE CASCADE
 );
 
-CREATE TABLE companies(
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  website VARCHAR(255),
-  location VARCHAR(100),
-  description TEXT,
-  logo TEXT,
-  created_by INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE companies (
+    id SERIAL PRIMARY KEY,
 
-  FOREIGN KEY(created_by)
-  REFERENCES users(id)
-  ON DELETE CASCADE
+    recruiter_id INT UNIQUE NOT NULL,
+
+    company_name VARCHAR(150) NOT NULL,
+
+    industry VARCHAR(100),
+
+    website TEXT,
+
+    description TEXT,
+
+    location VARCHAR(255),
+
+    company_logo TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (recruiter_id)
+    REFERENCES users(id)
+    ON DELETE CASCADE
 );
 
 CREATE TABLE jobs(

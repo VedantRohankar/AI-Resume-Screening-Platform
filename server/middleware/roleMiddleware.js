@@ -7,11 +7,20 @@ export const isAdmin = (req,res,next)=>{
   next();
 };
 
-export const isUser = (req,res,next)=>{
-  if(req.user.role!=='user'){
+export const isCandidate = (req,res,next)=>{
+  if(req.user.role!=='candidate'){
     return res.status(403).json({
-      message:"Access Denied. Users only",
+      message:"Access Denied. candidate only",
     });
   }
   next();
-}
+};
+
+export const isRecruiter = (req,res,next)=>{
+  if(req.user.role!=='recruiter'){
+    return res.status(403).json({
+      message:"Access Denied. recruiter only",
+    });
+  }
+  next();
+};
