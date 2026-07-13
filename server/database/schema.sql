@@ -68,22 +68,34 @@ CREATE TABLE companies (
     ON DELETE CASCADE
 );
 
-CREATE TABLE jobs(
-  id SERIAL PRIMARY KEY,
-  company_id INT NOT NULL,
-  title VARCHAR(100) NOT NULL,
-  description TEXT NOT NULL,
-  salary VARCHAR(50),
-  location VARCHAR(100),
-  experience_required VARCHAR(50),
-  employment_type VARCHAR(30),
-  status VARCHAR(20) DEFAULT 'Open',
-  created_by INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE jobs (
+    id SERIAL PRIMARY KEY,
 
-  FOREIGN KEY (company_id)
-  REFERENCES companies(id)
-  ON DELETE CASCADE
+    company_id INT NOT NULL,
+
+    title VARCHAR(150) NOT NULL,
+
+    description TEXT NOT NULL,
+
+    requirements TEXT,
+
+    location VARCHAR(150),
+
+    job_type VARCHAR(50),
+
+    salary VARCHAR(100),
+
+    experience_level VARCHAR(100),
+
+    status VARCHAR(20) DEFAULT 'open',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (company_id)
+    REFERENCES companies(id)
+    ON DELETE CASCADE
 );
 
 CREATE TABLE resumes(
