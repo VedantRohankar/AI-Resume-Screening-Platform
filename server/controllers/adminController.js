@@ -1,4 +1,5 @@
 import { getAllUsers } from "../models/userModel.js";
+import {getDashboardStats} from '../models/adminModel.js';
 
 export const getUsers = async(req,res)=>{
   try {
@@ -22,3 +23,17 @@ export const getUsers = async(req,res)=>{
   }
 
 };
+
+export const getDashboard = async (req,res) => {
+  try {
+    const stats = await getDashboardStats();
+    res.status(200).json(stats);
+    
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
+  }
+}
