@@ -125,6 +125,7 @@ CREATE TABLE applications(
    FOREIGN KEY (candidate_id)
    REFERENCES users(id)
    ON DELETE CASCADE
+   UNIQUE(job_id, candidate_id)
 );
 
 CREATE TABLE resume_analysis(
