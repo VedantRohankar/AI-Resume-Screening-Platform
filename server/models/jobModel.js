@@ -143,3 +143,25 @@ export const deleteJob = async (jobId, companyId) => {
   );
 
 };
+
+export const getAllJobsAdmin = async () => {
+  const result = await db.query(
+    `
+    SELECT * FROM jobs
+    ORDER BY created_at DESC;
+    `
+  );
+  return result.rows;
+};
+
+export const deleteJobById = async (jobId) => {
+  const result = await db.query(
+    `
+    DELETE FROM jobs
+    WHERE id = $1
+    RETURNING *;
+    `,
+    [jobId]
+  );
+  return result.rows[0];
+}

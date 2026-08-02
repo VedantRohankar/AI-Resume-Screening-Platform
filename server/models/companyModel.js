@@ -86,3 +86,25 @@ export const deleteCompany = async (recruiterId) => {
   [recruiterId]
   );
 };
+ export const getAllCompaniesAdmin = async () => {
+    console.log("getting companies");
+    const result = await db.query(
+      `
+      SELECT * FROM companies
+      ORDER BY created_at DESC
+      `
+    );
+    return result.rows;
+ };
+
+ export const deleteCompanyById = async (id) => {
+  const result = await db.query(
+    `
+     DELETE FROM companies
+     WHERE id = $1
+     RETURNING *; 
+    `,
+    [id]
+  );
+  return result.rows[0];
+ }

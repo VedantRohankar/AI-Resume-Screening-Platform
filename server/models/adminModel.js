@@ -12,4 +12,5 @@ export const getDashboardStats = async () => {
     `);
 
     return result.rows[0];
-}
+};
+
