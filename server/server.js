@@ -10,6 +10,7 @@ import resumeRoutes from "./routes/resumeRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import applicationRoutes from './routes/applicationRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 dotenv.config();
 
@@ -26,9 +27,10 @@ app.use("/api/resume",resumeRoutes);
 app.use("/api/company",companyRoutes);
 app.use("/api/jobs",jobRoutes);
 app.use("/api/applications",applicationRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get("/",(req,res)=>{
-  res.send("Graphology API Running");
+  res.send("HireAI API Running");
 });
 
 
