@@ -1,6 +1,6 @@
 import express from "express";
 
-import upload from "../middleware/uploadMiddleware.js";
+import upload from "../middleware/uploadResume.js";
 
 import {verifyToken} from "../middleware/authMiddleware.js";
 

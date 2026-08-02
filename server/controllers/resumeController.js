@@ -1,5 +1,6 @@
-import fs from "fs";
-import path from "path";
+// import fs from "fs";
+// import path from "path";
+import cloudinary from "../config/cloudinary.js";
 
 import{
   createResume,
@@ -20,16 +21,28 @@ export const uploadResume = async (req,res) => {
 
     const existingResume = await getResumeByCandidateId(candidateId);
 
-    //Delete old resume if it exist
-    if (existingResume) {
-      const oldFile = path.join(existingResume.resume_url);
-      if (fs.existsSync(oldFile)) {
-        fs.unlinkSync(oldFile);
-      }
+    //! Delete old resume if it exist-Local Storage File system approach
+    // if (existingResume) {
+    //   const oldFile = path.join(existingResume.resume_url);
+    //   if (fs.existsSync(oldFile)) {
+    //     fs.unlinkSync(oldFile);
+    //   }
       
-        await deleteResume(candidateId);
-      }
+    //     await deleteResume(candidateId);
+    //   }
 
+
+
+    //! Delete old resume if it exist--Cloudinary Approach
+    if (existingResume) {
+      await cloudinary.uploader.destroy(
+        existingResume.file_name,
+        {
+          resource_type: "raw",
+        }
+      );
+      await deleteResume(candidateId);
+    }
       const resume = await createResume(
         candidateId,
         req.file.path,
@@ -85,12 +98,20 @@ export const removeResume = async (req,res) => {
         message:"Resume not Found",
       })
     }
+    //! Local Storage File system approach
+    // const filePath = path.join(resume.resume_url);
 
-    const filePath = path.join(resume.resume_url);
+    // if (fs.existsSync(filePath)) {
+    //   fs.unlinkSync(filePath);
+    // }
 
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    //! Cloudinary Approach
+    await cloudinary.uploader.destroy(
+      resume.file_name,
+      {
+        resource_type: "raw",
+      }
+    );
     
     await deleteResume(candidateId);
 
@@ -118,9 +139,13 @@ export const downloadResume = async (req,res) => {
       });
     }
 
-    const filePath = path.resolve(resume.resume_url);
+    //! Local Storage File system approach
+    // const filePath = path.resolve(resume.resume_url);
 
-    res.download(filePath,resume.file_name);
+    // res.download(filePath,resume.file_name);
+
+     //! Cloudinary Approach
+     return res.redirect(resume.resume_url);
 
   } catch (error) {
     console.log(error);
