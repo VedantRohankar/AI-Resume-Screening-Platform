@@ -6,4 +6,4 @@ export const downloadResume = async (url) => {
   });
 
   return Buffer.from(response.data);
-}
+};

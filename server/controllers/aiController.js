@@ -1,68 +1,56 @@
-// import ai from "../config/gemini.js";
-
-// export const testGemini = async (req,res) => {
-//   try {
-//     const response = await ai.models.generateContent({
-//       model: "gemini-flash-latest",
-//       contents: "Say Hello From HireAI Resume Screening Platform",
-//     });
-
-//     res.status(200).json({
-//        message: response.text,
-//     });
-
-//   } catch (error) {
-//   console.error(error);
-
-//   res.status(500).json({
-//     message: "Gemini API Error",
-//     error: error.message,
-//     details: error,
-//   });
-// }
-// }
 
 //!Add a temporary test controller
-  import {getResumeByCandidateId} from '../models/resumeModel.js';
-  import {downloadResume} from '../services/downloadServices.js';
-  import {extractTextFromPdf} from '../services/pdfServices.js';
+import { getResumeByCandidateId } from "../models/resumeModel.js";
+import {downloadResume} from '../services/downloadServices.js'
+import { extractTextFromPDF } from "../services/pdfServices.js";
+import { analyzeResume } from "../services/geminiServices.js";
 
-  export const testResumeExtraction = async (req,res) => {
-    try {
+import  {validateResumeAnalysis} from '../services/aiValidator.js';
+
+  export const testResumeAI = async (req, res) => {
+  try {
     const candidateId = req.user.id;
-    
-    //! 1.Get Resume From PostgreSql
+
+    console.log("Candidate ID:", candidateId);
+    //! Get Resume Info from PostgreSql
     const resume = await getResumeByCandidateId(candidateId);
+
+    console.log("Resume from DB:", resume);
 
     if (!resume) {
       return res.status(404).json({
-        message: 'Resume Not Found',
+        message: "Resume not found",
       });
     }
-
-    //! 2.Download PDF from Clodinary
+    //! Download PDF from cloudinary
     const pdfBuffer = await downloadResume(resume.resume_url);
 
-   
+    console.log("PDF downloaded successfully");
+    //! Extract Text From Resume.
+    const resumeText = await extractTextFromPDF(pdfBuffer);
 
-    //! 3. Extract text From PDF
-    const resumeText = await extractTextFromPdf(pdfBuffer);
+    console.log("PDF text extracted successfully");
 
-    // res.status(200).json({
-    //   message: 'PDF converted into Text',
-    // });
-    //! 4. Return extracted text
-     res.status(200).json({
-      message: "Successfully Resume Extracted",
-      text: resumeText,
+    const analysis = await analyzeResume(resumeText);
+    validateResumeAnalysis(analysis);
+    return res.status(200).json({
+      message: "Resume has been Validated",
+      analysis,
+    })
+
+    console.log("Gemini analysis completed");
+
+    return res.status(200).json({
+      message: "Resume analyzed successfully",
+      analysis,
     });
 
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message: "Resume Extraction Failed",
-        error: error.message,
-      });
-      
-    }
+  } catch (error) {
+    console.error("AI ANALYSIS ERROR:", error);
+
+    return res.status(500).json({
+      message: "AI-Resume Analysis Failed",
+      error: error.message,
+    });
   }
+};
