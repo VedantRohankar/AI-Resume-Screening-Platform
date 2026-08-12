@@ -1,8 +1,9 @@
 import express from 'express';
-import {testGemini} from '../controllers/aiController.js';
+import {verifyToken} from '../middleware/authMiddleware.js';
+import {testResumeExtraction} from '../controllers/aiController.js';
 
 const router = express.Router();
 
-router.get("/test",testGemini);
+router.get("/test-resume-extraction",verifyToken,testResumeExtraction);
 
 export default router;
