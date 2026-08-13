@@ -1,4 +1,5 @@
 import ai from "../config/gemini.js";
+import { validateResumeAnalysis } from "./aiValidatationServices.js";
 
 export const analyzeResume = async (resumeText) => {
   const prompt = `
@@ -55,6 +56,7 @@ ${resumeText}
 
   // Convert JSON string → JavaScript object
   const analysis = JSON.parse(cleanedText);
+validateResumeAnalysis(analysis);
 
   return analysis;
 };

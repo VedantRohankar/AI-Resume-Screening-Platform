@@ -5,7 +5,7 @@ import {downloadResume} from '../services/downloadServices.js'
 import { extractTextFromPDF } from "../services/pdfServices.js";
 import { analyzeResume } from "../services/geminiServices.js";
 
-import  {validateResumeAnalysis} from '../services/aiValidator.js';
+import  {validateResumeAnalysis} from '../services/aiValidatationServices.js';
 
   export const testResumeAI = async (req, res) => {
   try {
