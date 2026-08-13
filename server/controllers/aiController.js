@@ -7,6 +7,8 @@ import { analyzeResume } from "../services/geminiServices.js";
 
 import  {validateResumeAnalysis} from '../services/aiValidatationServices.js';
 
+import {createResumeAnalysis, getResumeAnalysisByResumeId} from '../models/resumeAnalysisModel.js';
+
   export const testResumeAI = async (req, res) => {
   try {
     const candidateId = req.user.id;
@@ -32,6 +34,23 @@ import  {validateResumeAnalysis} from '../services/aiValidatationServices.js';
     console.log("PDF text extracted successfully");
 
     const analysis = await analyzeResume(resumeText);
+
+    const savedAnalysis = await createResumeAnalysis(
+      resume.id,
+      analysis.ats_score,
+      analysis.summary,
+      analysis.skills.join(","),
+      analysis.missing_skills.join(","),
+      [...analysis.strengths,
+        ...analysis.weaknesses,
+      ].join("/n")
+    );
+    return res.status(200).json({
+      message: "Resume Analysis Successful",
+      analysis,
+      savedAnalysis,
+    });
+
     validateResumeAnalysis(analysis);
     return res.status(200).json({
       message: "Resume has been Validated",
@@ -54,3 +73,34 @@ import  {validateResumeAnalysis} from '../services/aiValidatationServices.js';
     });
   }
 };
+
+export const getResumeAIAnalysis = async (req,res) => {
+  try {
+    const candidateId = req.user.id;
+    const resume = await getResumeByCandidateId(candidateId);
+    if (!resume) {
+      return res.status(404).json({
+        message: "Resume Not Found",
+      });
+    }
+
+    const analysis = await getResumeAnalysisByResumeId(resume.id);
+
+    if (!analysis) {
+      return res.status(404).json({
+        message: "Analysis Not Found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "AI-Analysed Resumed Fetched Successfully",
+      analysis,
+    })
+
+  } catch (error) {
+    console.log("GET AI ANALYSIS ERROR",error);
+    return res.status(500).json({
+      message: "AI-Resume Fetching Failed",
+    });
+  }
+}
