@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { createUser,findUserEmail } from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import {sendWelcomeEmail} from '../services/emailServices.js';
 
 export const register = async (req,res)=>{
   try {
@@ -33,6 +34,16 @@ export const register = async (req,res)=>{
       hashedPassword,
       role
     );
+    //!Welcome Email Notif
+    try {
+      await sendWelcomeEmail(email, username);
+      console.log("Welcome Email sent to:",email);
+      
+    } catch (error) {
+      console.error("Failed to send Welcome Email:",error);
+      
+      
+    }
      res.status(200).json({
       message:"User Registered Successfully",
         user: {

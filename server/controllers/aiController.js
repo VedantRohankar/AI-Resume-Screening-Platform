@@ -7,9 +7,9 @@ import { analyzeResume } from "../services/geminiServices.js";
 
 import  {validateResumeAnalysis} from '../services/aiValidatationServices.js';
 
-import {createResumeAnalysis, getResumeAnalysisByResumeId} from '../models/resumeAnalysisModel.js';
+import {createResumeAnalysis, getResumeAnalysisByResumeId, updateResumeAnalysis} from '../models/resumeAnalysisModel.js';
 
-  export const testResumeAI = async (req, res) => {
+  export const analyzeResumeAI = async (req, res) => {
   try {
     const candidateId = req.user.id;
 
@@ -35,16 +35,21 @@ import {createResumeAnalysis, getResumeAnalysisByResumeId} from '../models/resum
 
     const analysis = await analyzeResume(resumeText);
 
-    const savedAnalysis = await createResumeAnalysis(
-      resume.id,
-      analysis.ats_score,
-      analysis.summary,
-      analysis.skills.join(","),
-      analysis.missing_skills.join(","),
-      [...analysis.strengths,
-        ...analysis.weaknesses,
-      ].join("/n")
-    );
+    const existingAnalysis = await getResumeAnalysisByResumeId(resume.id);
+    let savedAnalysis;
+
+    if (existingAnalysis) {
+      savedAnalysis = await updateResumeAnalysis(
+        resume.id,
+        analysis
+      );
+    }else {
+      savedAnalysis = await createResumeAnalysis(
+        resume.id,
+        analysis
+      );
+    }
+    
     return res.status(200).json({
       message: "Resume Analysis Successful",
       analysis,
