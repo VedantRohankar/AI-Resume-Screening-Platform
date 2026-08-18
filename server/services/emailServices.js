@@ -33,8 +33,25 @@ const sendWelcomeEmail = async (email, name) => {
   const info = await transporter.sendMail(mailOptions);
   return info;
 };
+
+
+const sendVerificationEmail = async (email, name, token) => {
+  const verificationLink = `http://localhost:5000/api/auth/verify?token=${token}`;
+
+
+const mailOptions = {
+  from: `"HireAI" <${process.env.SMTP_USER}`,
+  to: email,
+  subject: "Verify your HireAI Account",
+  text:`Hello ${name}, \nWelcome to HireAI! Please verify your email address to activate your account by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
+};
+const info = await transporter.sendMail(mailOptions);
+return info;
+};
+
 export{
   sendWelcomeEmail,
+  sendVerificationEmail,
 };
 
 export default transporter;

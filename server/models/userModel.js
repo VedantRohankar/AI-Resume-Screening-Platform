@@ -1,17 +1,20 @@
 import db from "../config/db.js";
 
-export const createUser = async(username,email,password,role)=>{
-  const query=`
-  INSERT INTO users (username,email,password,role)
-  VALUES ($1, $2, $3, $4)
+export const createUser = async (
+  username,
+  email,
+  password,
+  role,
+  verificationToken,
+  tokenExpiresAt     
+) => {
+  const result = await db.query(`
+  INSERT INTO users (username, email, password, role, verification_token, token_expires_at)
+  VALUES ($1, $2, $3, $4, $5, $6)
   RETURNING *;
-  `;
-
-const values = [username,email,password,role];
-
-const result = await db.query(query,values);
-return result.rows[0];
-
+  `,[username, email, password, role, verificationToken, tokenExpiresAt]
+);
+  return result.rows[0];
 };
 
 export const findUserEmail = async (email)=>{
@@ -57,3 +60,26 @@ export const deleteUserId = async (id) => {
   );
   return result.rows[0];
 };
+
+export const findUserByToken = async (token) => {
+  const result = await db.query(
+    `
+    SELECT * FROM users
+    WHERE verification_token = $1
+    `,[token]
+  );
+  return result.rows[0];
+};
+
+export const verifyUserAccount = async (userId) => {
+  const result = await db.query(
+    `
+    UPDATE users
+    SET is_verified = true,
+    verification_token = NULL,
+    token_expires_at = NULL
+    WHERE id = $1
+    `,[userId]
+  );
+  return result.rows[0];
+}

@@ -1,6 +1,9 @@
 import ai from "../config/gemini.js";
 import { validateResumeAnalysis } from "./aiValidatationServices.js";
 
+// Helper to pause execution for Exponential Backoff
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const analyzeResume = async (resumeText) => {
   const prompt = `
 You are an expert ATS resume analyzer.
@@ -40,10 +43,31 @@ Resume:
 ${resumeText}
 `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-flash-latest",
-    contents: prompt,
-  });
+  const maxRetries = 3;
+  const baseDelay = 2000; // 2 seconds
+  let response;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: prompt,
+      });
+      break;
+    } catch (error) {
+      if (error.message.includes("503") || error.message.includes("UNAVAILABLE")) {
+        if (attempt === maxRetries) {
+          console.error("Max retries reached. Gemini is still unavailable.");
+          throw error;
+        }
+        const waitTime = baseDelay * Math.pow(2, attempt);
+        console.warn(`Gemini 503 Error. Retrying attempt ${attempt + 1} in ${waitTime}ms...`);
+        await delay(waitTime);
+      } else {
+        throw error;
+      }
+    }
+  }
 
   const rawText = response.text.trim();
 
@@ -56,7 +80,7 @@ ${resumeText}
 
   // Convert JSON string → JavaScript object
   const analysis = JSON.parse(cleanedText);
-validateResumeAnalysis(analysis);
+  validateResumeAnalysis(analysis);
 
   return analysis;
 };

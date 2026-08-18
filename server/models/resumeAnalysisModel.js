@@ -48,13 +48,13 @@ export const updateResumeAnalysis = async (
     `
     UPDATE resume_analysis
     SET
-    score = $1,
-    summary = $2,
-    skills = $3,
-    missing_skills = $4,
-    suggestions = $5,
-    WHERE resume_id = $6,
-    analysis_data = $7,
+      score = $1,
+      summary = $2,
+      skills = $3,
+      missing_skills = $4,
+      suggestions = $5,
+      analysis_data = $6
+    WHERE resume_id = $7
     RETURNING *;
     `,
     [
@@ -63,9 +63,9 @@ export const updateResumeAnalysis = async (
       analysis.skills.join(", "),
       analysis.missing_skills.join(", "),
       analysis.strengths.join(", "),
-      JSON.stringify(analysis),
-      resumeId
+      JSON.stringify(analysis), // This is now $6
+      resumeId                  // This is now $7
     ]
   );
   return result.rows[0];
-}
+};
