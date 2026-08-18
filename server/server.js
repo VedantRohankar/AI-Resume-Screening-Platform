@@ -11,11 +11,14 @@ import companyRoutes from "./routes/companyRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import applicationRoutes from './routes/applicationRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import {errorMiddleware} from './middleware/errorMiddleware.js';
+import AppError from './utils/AppError.js';
 
 dotenv.config();
 
 const app = express();
 
+//Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -28,11 +31,17 @@ app.use("/api/company",companyRoutes);
 app.use("/api/jobs",jobRoutes);
 app.use("/api/applications",applicationRoutes);
 app.use("/api/ai", aiRoutes);
+app.get("/api/test-error",(req,res,next)=>{
+  const error = new AppError("Oops! This resume was not found.", 404);
+  next(error);
+});
 
 app.get("/",(req,res)=>{
   res.send("HireAI API Running");
 });
 
+//Error middleware
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
 

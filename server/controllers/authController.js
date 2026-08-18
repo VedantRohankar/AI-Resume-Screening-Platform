@@ -3,26 +3,24 @@ import { createUser,findUserEmail, findUserByToken, verifyUserAccount} from "../
 import jwt from "jsonwebtoken";
 import {sendWelcomeEmail, sendVerificationEmail} from '../services/emailServices.js';
 import crypto from 'crypto';
+import catchAsync from '../utils/catchAsync.js';
+import AppError from '../utils/AppError.js';
 
-export const register = async (req,res)=>{
-  try {
+
+export const register = catchAsync( async (req,res)=>{
     const {username, email, password, role} = req.body;
 
      // Allow only candidate and recruiter roles
     const allowedRoles = ["candidate", "recruiter"];
 
     if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        message: "Role must be candidate or recruiter",
-      });
+      return next(new AppError("Role must be candidate or recruiter", 400));
     }
 
      // Check if user already exists
     const existingUser = await findUserEmail(email);
     if(existingUser){
-      return res.status(400).json({
-        message: "User Already Exists",
-      });
+      return next(new AppError("User Already Exists", 400));
     }
 
     // Hash Password
@@ -62,67 +60,48 @@ export const register = async (req,res)=>{
         },
      });
 
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message:"Server Error",
-    });
-    
+});
+
+export const login = catchAsync(async (req, res, next) => { 
+  
+  const {email, password} = req.body;
+
+  const user = await findUserEmail(email);
+
+  if(!user){
+    return next(new AppError("Invalid Email or Password", 400));
   }
-};
-
-export const login = async(req,res)=>{
-
-  try {
-    const {email,password} = req.body;
-
-    const user = await findUserEmail(email);
-
-    if(!user){
-      return res.status(400).json({
-        message:"Invalid Email or Password",
-      });
-    }
-    //NEW: Block Unverified Users--
-    if (!user.is_verified) {
-      return res.status(403).json({
-        message:"Please verify your email address before logging in."
-      });
-    }
-
-    const isMatch = await bcrypt.compare(password,user.password);
-
-    if(!isMatch){
-      return res.status(400).json({
-        message:"Invalid Email or Password",
-      });
-    }
-
-    const token = jwt.sign(
-      {id:user.id,
-        role:user.role,
-      },
-      process.env.JWT_SECRET,
-      {expiresIn:"1h"}
-    );
-
-    res.status(200).json({
-      message:"Login Successful",
-      token,
-      user:{
-        id:user.id,
-        username:user.username,
-        email:user.email,
-      },
-    });
-
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message:"Server Error",
-    });
+  
+  if (!user.is_verified) {
+    return next(new AppError("Please verify your email address before logging in.", 403)); 
   }
-};
+
+  const isMatch = await bcrypt.compare(password, user.password);
+
+  if(!isMatch){
+    return next(new AppError("Invalid Email or Password", 400));
+  }
+
+  const token = jwt.sign(
+    { 
+      id: user.id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
+
+  res.status(200).json({
+    message: "Login Successful",
+    token,
+    user: {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+    },
+  });
+
+});
 
 export const verifyEmail = async (req, res) => {
   try {
