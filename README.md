@@ -425,4 +425,4 @@ This project demonstrates practical implementation of:
 
 # Author
 
-Developed by Vedant as a full-stack backend portfolio project to demonstrate enterprise-level software engineering skills and AI integration.
+Developed by Vedant Rohankar as a full-stack backend portfolio project to demonstrate enterprise-level software engineering skills and AI integration.
