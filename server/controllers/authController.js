@@ -1,13 +1,14 @@
 import bcrypt from "bcrypt";
-import { createUser,findUserEmail, findUserByToken, verifyUserAccount} from "../models/userModel.js";
+import { createUser,findUserEmail, findUserByToken, verifyUserAccount, updateUserPassword} from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import {sendWelcomeEmail, sendVerificationEmail} from '../services/emailServices.js';
 import crypto from 'crypto';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
 import {generateResetToken, hashResetToken} from '../services/passwordResetService.js';
-import {createResetToken} from '../models/passwordResetModel.js';
+import {createResetToken, findResetToken,markResetTokenUsed} from '../models/passwordResetModel.js';
 import {sendPasswordResetEmail} from '../services/emailServices.js';
+
 
 export const register = catchAsync( async (req,res)=>{
     const {username, email, password, role} = req.body;
@@ -191,6 +192,51 @@ await sendPasswordResetEmail(
  return res.status(200).json({
   message: "Password Reset link sent Successfully",
  });
+
+});
+
+export const resetPassword = catchAsync(async (req,res) => {
+  //Retreive token and newPassword
+  const {token, newPassword} = req.body;
+
+  //Hash the Token
+  const tokenHash = hashResetToken(token);
+  //
+  const resetToken = await findResetToken(tokenHash);
+
+  if (!resetToken) {
+    return res.status(400).json({
+      message: 'Invalid or Expired reset Token',
+    });
+  }
+//Check wheather the token is expired or not
+ if (new Date()> new Date(resetToken.expires_at)) {
+    return res.status(400).json({
+      message: "Reset token has expired",
+    });
+ }
+
+ //Check weather the token is already used or not
+ if (resetToken.used_at) {
+  return res.status(400).json({
+    message: 'Token is already been used',
+  });
+ }
+//Hash the new Password
+ const hashedPassword = await bcrypt.hash(newPassword,10);
+
+ //Update Users Password
+ const updatedUser = await updateUserPassword(
+  resetToken.user_id,
+  hashedPassword
+ );
+
+ //Mark Reset token as Used.
+await markResetTokenUsed(resetToken.id);
+ return res.status(200).json({
+  message: 'Password reset successfully',
+ });
+
 
 });
 

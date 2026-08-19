@@ -83,3 +83,15 @@ export const verifyUserAccount = async (userId) => {
   );
   return result.rows[0];
 };
+
+export const updateUserPassword = async (userId, hashedPassword) => {
+  const result = await db.query(
+    `
+    UPDATE users
+    SET password = $1
+    WHERE id = $2
+    RETURNING id, email;
+    `,[hashedPassword,userId]
+  );
+  return result.rows[0];
+};

@@ -1,4 +1,5 @@
 import db from '../config/db.js';
+import catchAsync from '../utils/catchAsync.js';
 
 export const createResetToken = async (
   userId,
@@ -20,7 +21,7 @@ export const findResetToken = async (tokenHash) => {
   const result = await db.query(
     `
     SELECT * FROM password_reset_token
-    WHERE token_hash = $1,
+    WHERE token_hash = $1
     `,[tokenHash]
   );
   return result.rows[0];
