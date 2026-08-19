@@ -15,7 +15,6 @@ CREATE TABLE users (
   role VARCHAR(20)
   CHECK(role IN('admin','recruiter','candidate'))
   DEFAULT 'candidate',
-
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -156,4 +155,22 @@ CREATE TABLE ai_resume_analysis (
     FOREIGN KEY (candidate_id)
     REFERENCES users(id)
     ON DELETE CASCADE
+);
+
+CREATE TABLE password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+
+    user_id INT NOT NULL,
+
+    token_hash TEXT NOT NULL UNIQUE,
+
+    expires_at TIMESTAMP NOT NULL,
+
+    used_at TIMESTAMP NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );

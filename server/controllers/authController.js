@@ -5,7 +5,9 @@ import {sendWelcomeEmail, sendVerificationEmail} from '../services/emailServices
 import crypto from 'crypto';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/AppError.js';
-
+import {generateResetToken, hashResetToken} from '../services/passwordResetService.js';
+import {createResetToken} from '../models/passwordResetModel.js';
+import {sendPasswordResetEmail} from '../services/emailServices.js';
 
 export const register = catchAsync( async (req,res)=>{
     const {username, email, password, role} = req.body;
@@ -148,3 +150,50 @@ export const verifyEmail = async (req, res) => {
     res.status(500).json({ message: "Server Error during verification." });
   }
 };
+
+//! FORGOT PASSWORD FLOW:
+
+//Find users email
+export const forgotPassword = catchAsync(async (req,res) => {
+  const {email} = req.body;
+
+  const user = await findUserEmail(email);
+
+  if (!user) {
+    return res.status(404).json({
+      message: 'User Not Found',
+    });
+  }
+  console.log("User Found:",user.email);
+//Generate Reset Token
+  const resetToken = generateResetToken();
+  console.log("Reset Token:",resetToken);
+
+//Hash Reset Token
+const hashToken = hashResetToken(resetToken);
+console.log("Hash Token:",hashToken);
+
+//Calculate Expiry
+const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+// Reset Token Password Record
+const resetTokenRecord = await createResetToken (
+  user.id,
+  hashToken,
+  expiresAt
+);
+// Send the token to the email
+await sendPasswordResetEmail(
+  user.email,
+  user.username,
+  resetToken
+);
+ return res.status(200).json({
+  message: "Password Reset link sent Successfully",
+ });
+
+});
+
+
+
+

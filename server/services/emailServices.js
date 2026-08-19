@@ -25,7 +25,7 @@ transporter.verify((error,success)=>{
 
 const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
-    from: `"HireAI"<${process.env.SMTP_USER}`,
+    from: `"HireAI" <${process.env.SMTP_USER}`,
     to: email,
     subject: "Welcome to HireAI",
     text: `Hello ${name}, welcome to HireAI`,
@@ -49,9 +49,36 @@ const info = await transporter.sendMail(mailOptions);
 return info;
 };
 
+const sendPasswordResetEmail = async (email, name, token) => {
+  const resetLink = `http://localhost:5000/api/auth/reset-password?token=${token}`;
+
+  const mailOptions = {
+    from: `"HireAI" <${process.env.SMTP_USER}`,
+    to: email,
+    subject: "Reset your HireAI Password",
+    text: `Hello ${name},
+      We received a request to reset your HireAI password.
+
+      Click the link below to reset your password:
+
+      ${resetLink}
+
+      This link will expire in 15 minutes.
+
+      If you did not request a password reset, please ignore this email.
+
+      Regards,
+      HireAI Team`,
+  };
+  const info = await transporter.sendMail(mailOptions);
+  return info;
+};
+
+
 export{
   sendWelcomeEmail,
   sendVerificationEmail,
+  sendPasswordResetEmail,
 };
 
 export default transporter;

@@ -82,4 +82,4 @@ export const verifyUserAccount = async (userId) => {
     `,[userId]
   );
   return result.rows[0];
-}
+};
