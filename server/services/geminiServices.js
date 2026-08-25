@@ -1,8 +1,6 @@
 import ai from "../config/gemini.js";
 import { validateResumeAnalysis } from "./aiValidatationServices.js";
-
-// Helper to pause execution for Exponential Backoff
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+import { callGeminiWithRetry } from "../utils/geminierror.js";
 
 export const analyzeResume = async (resumeText) => {
   const prompt = `
@@ -43,44 +41,24 @@ Resume:
 ${resumeText}
 `;
 
-  const maxRetries = 3;
-  const baseDelay = 2000; // 2 seconds
-  let response;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      response = await ai.models.generateContent({
-        model: "gemini-3.7-flash",
-        contents: prompt,
-      });
-      break;
-    } catch (error) {
-      if (error.message.includes("503") || error.message.includes("UNAVAILABLE")) {
-        if (attempt === maxRetries) {
-          console.error("Max retries reached. Gemini is still unavailable.");
-          throw error;
-        }
-        const waitTime = baseDelay * Math.pow(2, attempt);
-        console.warn(`Gemini 503 Error. Retrying attempt ${attempt + 1} in ${waitTime}ms...`);
-        await delay(waitTime);
-      } else {
-        throw error;
-      }
-    }
-  }
+  const response = await callGeminiWithRetry(async () => {
+    return await ai.models.generateContent({
+      model: "gemini-3.5-flash-lite",
+      contents: prompt,
+    });
+  });
 
   const rawText = response.text.trim();
-
-  // Remove markdown code fences if Gemini happens to add them
+  
   const cleanedText = rawText
     .replace(/^```json\s*/i, "")
     .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-
-  // Convert JSON string → JavaScript object
-  const analysis = JSON.parse(cleanedText);
-  validateResumeAnalysis(analysis);
-
-  return analysis;
+      .replace(/\s*```$/i, "")
+      .trim();
+  
+      const analysis = JSON.parse(cleanedText);
+      validateResumeAnalysis(analysis);
+  
+      return analysis;
 };

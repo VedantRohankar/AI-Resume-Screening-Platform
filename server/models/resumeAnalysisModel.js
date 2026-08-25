@@ -69,3 +69,22 @@ export const updateResumeAnalysis = async (
   );
   return result.rows[0];
 };
+
+export const getAIResumeAnalysisByCandidateId = async (candidateId) => {
+  const result = await db.query(
+    `
+    SELECT 
+      ra.id,
+      r.candidate_id,
+      ra.skills,
+      ra.summary,
+      ra.analysis_data
+    FROM resume_analysis ra
+    INNER JOIN resumes r ON ra.resume_id = r.id
+    WHERE r.candidate_id = $1
+    ORDER BY ra.created_at DESC
+    LIMIT 1;
+    `, [candidateId]
+  );
+  return result.rows[0];
+}

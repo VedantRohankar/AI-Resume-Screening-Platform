@@ -80,3 +80,42 @@ export const validateResumeAnalysis = (analysis) => {
 
   return true;
 };
+
+export const validateAIJobMatch = (analysis)=>{
+  if (!analysis || typeof analysis !== "object") {
+    throw new Error("AI match response is not a valid object");
+  }
+
+  if (
+    typeof analysis.match_score !== "number" ||
+    analysis.match_score < 0 ||
+    analysis.match_score > 100
+  ) {
+    throw new Error("Invalid match_score");
+  }
+
+  const arrayFields = [
+    "matched_skills",
+    "missing_skills",
+  ];
+
+  for (const field of arrayFields) {
+    if (!Array.isArray(analysis[field])) {
+      throw new Error(`${field} must be an array`);
+    }
+  }
+
+  const stringFields = [
+    "experience_match",
+    "recommendation",
+    "summary",
+  ];
+
+  for (const field of stringFields) {
+    if (typeof analysis[field] !== "string") {
+      throw new Error(`${field} must be a string`);
+    }
+  }
+
+  return true;
+};

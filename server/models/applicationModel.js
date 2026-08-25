@@ -55,3 +55,39 @@ export const updateApplicationStatus = async (ApplicationId,status) => {
   return result.rows[0];
   
 };
+
+//Get Application for AI Matching
+
+export const getApplicationForAIMatching = async (applicationId) => {
+  const result = await db.query(
+    `
+    SELECT
+      a.id AS application_id,
+      a.candidate_id,
+      a.job_id,
+
+      u.id AS user_id,
+      u.username,
+      u.email,
+
+      j.id AS job_id,
+      j.title,
+      j.description,
+      j.requirements,
+      j.experience_level
+
+    FROM applications a
+
+    JOIN users u
+      ON a.candidate_id = u.id
+
+    JOIN jobs j
+      ON a.job_id = j.id
+
+    WHERE a.id = $1;
+    `,
+    [applicationId]
+  );
+
+  return result.rows[0];
+};

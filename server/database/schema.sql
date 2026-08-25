@@ -123,7 +123,7 @@ CREATE TABLE applications(
 
    FOREIGN KEY (candidate_id)
    REFERENCES users(id)
-   ON DELETE CASCADE
+   ON DELETE CASCADE,
    UNIQUE(job_id, candidate_id)
 );
 
@@ -173,4 +173,30 @@ CREATE TABLE password_reset_tokens (
     FOREIGN KEY (user_id)
         REFERENCES users(id)
         ON DELETE CASCADE
+);
+
+CREATE TABLE ai_job_matches (
+    id SERIAL PRIMARY KEY,
+
+    application_id INT UNIQUE NOT NULL,
+
+    match_score INT,
+
+    matched_skills TEXT[],
+
+    missing_skills TEXT[],
+
+    experience_match TEXT,
+
+    recommendation TEXT,
+
+    summary TEXT,
+
+    analysis_data JSONB,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (application_id)
+    REFERENCES applications(id)
+    ON DELETE CASCADE
 );
