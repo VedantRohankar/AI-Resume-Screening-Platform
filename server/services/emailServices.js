@@ -36,24 +36,26 @@ const sendWelcomeEmail = async (email, name) => {
 
 
 const sendVerificationEmail = async (email, name, token) => {
-  const verificationLink = `http://localhost:5000/api/auth/verify?token=${token}`;
+  // Use CLIENT_URL from environment variables, or fallback to localhost for local testing
+  const baseUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const verificationLink = `${baseUrl}/api/auth/verify?token=${token}`;
 
-
-const mailOptions = {
-  from: `"HireAI" <${process.env.SMTP_USER}`,
-  to: email,
-  subject: "Verify your HireAI Account",
-  text:`Hello ${name}, \nWelcome to HireAI! Please verify your email address to activate your account by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
-};
-const info = await transporter.sendMail(mailOptions);
-return info;
+  const mailOptions = {
+    from: `"HireAI" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: "Verify your HireAI Account",
+    text: `Hello ${name}, \nWelcome to HireAI! Please verify your email address to activate your account by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
+  };
+  const info = await transporter.sendMail(mailOptions);
+  return info;
 };
 
 const sendPasswordResetEmail = async (email, name, token) => {
-  const resetLink = `http://localhost:5000/api/auth/reset-password?token=${token}`;
+  const baseUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const resetLink = `${baseUrl}/api/auth/reset-password?token=${token}`;
 
   const mailOptions = {
-    from: `"HireAI" <${process.env.SMTP_USER}`,
+    from: `"HireAI" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Reset your HireAI Password",
     text: `Hello ${name},
