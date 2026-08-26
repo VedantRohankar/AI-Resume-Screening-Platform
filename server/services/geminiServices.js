@@ -1,6 +1,6 @@
 import ai from "../config/gemini.js";
 import { validateResumeAnalysis } from "./aiValidatationServices.js";
-import { callGeminiWithRetry } from "../utils/geminierror.js";
+import { callGeminiWithRetry } from "../utils/geminiError.js";
 
 export const analyzeResume = async (resumeText) => {
   const prompt = `
