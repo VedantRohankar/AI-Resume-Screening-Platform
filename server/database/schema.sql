@@ -1,3 +1,6 @@
+DROP TABLE IF EXISTS ai_job_matches CASCADE;
+DROP TABLE IF EXISTS password_reset_tokens CASCADE;
+DROP TABLE IF EXISTS ai_resume_analysis CASCADE;
 DROP TABLE IF EXISTS resume_analysis CASCADE;
 DROP TABLE IF EXISTS applications CASCADE;
 DROP TABLE IF EXISTS resumes CASCADE;
@@ -8,17 +11,20 @@ DROP TABLE IF EXISTS users CASCADE;
 
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
-
   username VARCHAR(50) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role VARCHAR(20)
-  CHECK(role IN('admin','recruiter','candidate'))
-  DEFAULT 'candidate',
+  role VARCHAR(20) CHECK(role IN('admin','recruiter','candidate')) DEFAULT 'candidate',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS verification_token TEXT,
+ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE;
 
-CREATE TABLE profiles(
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMP;
+
+CREATE TABLE profiles (
   id SERIAL PRIMARY KEY,
   user_id INT UNIQUE NOT NULL,
   full_name VARCHAR(100),
@@ -32,102 +38,63 @@ CREATE TABLE profiles(
   github_url TEXT,
   portfolio_url TEXT,
   profile_photo TEXT,
-
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (user_id)
-  REFERENCES users(id)
-  ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE companies (
     id SERIAL PRIMARY KEY,
-
     recruiter_id INT UNIQUE NOT NULL,
-
     company_name VARCHAR(150) NOT NULL,
-
     industry VARCHAR(100),
-
     website TEXT,
-
     description TEXT,
-
     location VARCHAR(255),
-
     company_logo TEXT,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (recruiter_id)
-    REFERENCES users(id)
-    ON DELETE CASCADE
+    FOREIGN KEY (recruiter_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE jobs (
     id SERIAL PRIMARY KEY,
-
     company_id INT NOT NULL,
-
     title VARCHAR(150) NOT NULL,
-
     description TEXT NOT NULL,
-
     requirements TEXT,
-
     location VARCHAR(150),
-
     job_type VARCHAR(50),
-
     salary VARCHAR(100),
-
     experience_level VARCHAR(100),
-
     status VARCHAR(20) DEFAULT 'open',
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (company_id)
-    REFERENCES companies(id)
-    ON DELETE CASCADE
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
 );
 
-CREATE TABLE resumes(
+CREATE TABLE resumes (
   id SERIAL PRIMARY KEY,
   candidate_id INT NOT NULL,
   resume_url TEXT NOT NULL,
   file_name VARCHAR(255),
   file_size INT,
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY(candidate_id)
-  REFERENCES users(id)
-  ON DELETE CASCADE
+  FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE applications(
-  id SERIAL PRIMARY KEY,
-  job_id INT NOT NULL,
-  candidate_id INT NOT NULL,
-  status VARCHAR(30) DEFAULT 'Pending',
+CREATE TABLE applications (
+   id SERIAL PRIMARY KEY,
+   job_id INT NOT NULL,
+   candidate_id INT NOT NULL,
+   status VARCHAR(30) DEFAULT 'Pending',
    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-   FOREIGN KEY (job_id)
-   REFERENCES jobs(id)
-   ON DELETE CASCADE,
-
-   FOREIGN KEY (candidate_id)
-   REFERENCES users(id)
-   ON DELETE CASCADE,
+   FOREIGN KEY (job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+   FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE CASCADE,
    UNIQUE(job_id, candidate_id)
 );
 
-CREATE TABLE resume_analysis(
+CREATE TABLE resume_analysis (
   id SERIAL PRIMARY KEY,
   resume_id INT NOT NULL,
   score INT,
@@ -135,11 +102,9 @@ CREATE TABLE resume_analysis(
   skills TEXT,
   missing_skills TEXT,
   suggestions TEXT,
+  analysis_data JSONB,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (resume_id)
-  REFERENCES resumes(id)
-  ON DELETE CASCADE
+  FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE
 );
 
 CREATE TABLE ai_resume_analysis (
@@ -151,52 +116,29 @@ CREATE TABLE ai_resume_analysis (
     experience TEXT,
     summary TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (candidate_id)
-    REFERENCES users(id)
-    ON DELETE CASCADE
+    FOREIGN KEY (candidate_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE password_reset_tokens (
     id SERIAL PRIMARY KEY,
-
     user_id INT NOT NULL,
-
     token_hash TEXT NOT NULL UNIQUE,
-
     expires_at TIMESTAMP NOT NULL,
-
     used_at TIMESTAMP NULL,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE ai_job_matches (
     id SERIAL PRIMARY KEY,
-
     application_id INT UNIQUE NOT NULL,
-
     match_score INT,
-
     matched_skills TEXT[],
-
     missing_skills TEXT[],
-
     experience_match TEXT,
-
     recommendation TEXT,
-
     summary TEXT,
-
     analysis_data JSONB,
-
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (application_id)
-    REFERENCES applications(id)
-    ON DELETE CASCADE
+    FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 );
