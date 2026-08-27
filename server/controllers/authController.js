@@ -62,7 +62,7 @@ export const register = catchAsync( async (req,res)=>{
         role: user.role,
         },
      });
-
+console.log(`🔑 Verification Token for ${email}: ${verificationToken}`);
 });
 
 export const login = catchAsync(async (req, res, next) => { 
