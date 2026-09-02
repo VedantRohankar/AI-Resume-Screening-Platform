@@ -43,26 +43,23 @@ export const register = catchAsync(async (req, res, next) => {
       verificationToken,
       tokenExpiresAt
     );
-    //!Verification Email Notif:
-    try {
-      await sendVerificationEmail(email, username, verificationToken);
-      console.log("Verification Email sent to:",email);
-      
-    } catch (error) {
-      console.log("Failed to send Verification Email:",error);
-    }
+    //! Verification Email (Dispatched in background so client response never times out):
+    sendVerificationEmail(email, username, verificationToken)
+      .then(() => console.log("✅ Verification Email sent to:", email))
+      .catch((err) => console.warn("⚠️ Email delivery warning (check SMTP on Render):", err.message));
 
-    
-     res.status(200).json({
-      message:"User Registered Successfully,Please check your email to verify your account.",
-        user: {
+    const clientBaseUrl = (process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/+$/, '');
+    console.log(`🔑 Verification Link for ${email}: ${clientBaseUrl}/api/auth/verify?token=${verificationToken}`);
+
+    return res.status(200).json({
+      message: "User Registered Successfully! Please check your email to verify your account.",
+      user: {
         id: user.id,
         username: user.username,
         email: user.email,
         role: user.role,
-        },
-     });
-console.log(`🔑 Verification Token for ${email}: ${verificationToken}`);
+      },
+    });
 });
 
 export const login = catchAsync(async (req, res, next) => { 
@@ -108,11 +105,30 @@ export const login = catchAsync(async (req, res, next) => {
 });
 
 export const verifyEmail = async (req, res) => {
+  const clientUrl = (process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  const isHtmlRequest = req.headers.accept && req.headers.accept.includes('text/html');
+
   try {
     // 1. Grab the token from the URL
     const { token } = req.query;
 
     if (!token) {
+      if (isHtmlRequest) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>HireAI - Verification Error</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+          <body style="margin:0; background:#090d16; color:#f8fafc; font-family:system-ui, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px;">
+            <div style="background:#0f172a; border:1px solid #1e293b; padding:40px; border-radius:16px; max-width:440px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+              <div style="font-size:36px; margin-bottom:12px;">⚠️</div>
+              <h2 style="color:#f43f5e; margin:0 0 10px;">Token Missing</h2>
+              <p style="color:#94a3b8; font-size:14px; line-height:1.6;">Verification token is missing from the link.</p>
+              <a href="${clientUrl}/login" style="display:inline-block; margin-top:20px; background:#6366f1; color:#fff; padding:10px 24px; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px;">Go to Sign In</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
       return res.status(400).json({ message: "Verification token is missing." });
     }
 
@@ -120,6 +136,22 @@ export const verifyEmail = async (req, res) => {
     const user = await findUserByToken(token);
 
     if (!user) {
+      if (isHtmlRequest) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>HireAI - Verification Error</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+          <body style="margin:0; background:#090d16; color:#f8fafc; font-family:system-ui, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px;">
+            <div style="background:#0f172a; border:1px solid #1e293b; padding:40px; border-radius:16px; max-width:440px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+              <div style="font-size:36px; margin-bottom:12px;">❌</div>
+              <h2 style="color:#f43f5e; margin:0 0 10px;">Invalid Token</h2>
+              <p style="color:#94a3b8; font-size:14px; line-height:1.6;">This verification link is invalid or has already been used.</p>
+              <a href="${clientUrl}/login" style="display:inline-block; margin-top:20px; background:#6366f1; color:#fff; padding:10px 24px; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px;">Go to Sign In</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
       return res.status(400).json({ message: "Invalid verification token." });
     }
 
@@ -128,18 +160,60 @@ export const verifyEmail = async (req, res) => {
     const expirationTime = new Date(user.token_expires_at);
 
     if (currentTime > expirationTime) {
+      if (isHtmlRequest) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head><title>HireAI - Token Expired</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+          <body style="margin:0; background:#090d16; color:#f8fafc; font-family:system-ui, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px;">
+            <div style="background:#0f172a; border:1px solid #1e293b; padding:40px; border-radius:16px; max-width:440px; width:100%; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+              <div style="font-size:36px; margin-bottom:12px;">⏳</div>
+              <h2 style="color:#f59e0b; margin:0 0 10px;">Token Expired</h2>
+              <p style="color:#94a3b8; font-size:14px; line-height:1.6;">This link has expired (valid for 24h). Please register again.</p>
+              <a href="${clientUrl}/register" style="display:inline-block; margin-top:20px; background:#6366f1; color:#fff; padding:10px 24px; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px;">Register Again</a>
+            </div>
+          </body>
+          </html>
+        `);
+      }
       return res.status(400).json({ message: "Verification token has expired. Please register again." });
     }
 
     // 4. Update the user account to is_verified = true
     const verifiedUser = await verifyUserAccount(user.id);
 
-    // 5. Send the Welcome Email now that they are officially verified!
+    // 5. Send Welcome Email
     try {
       await sendWelcomeEmail(verifiedUser.email, verifiedUser.username);
       console.log("Welcome Email sent to verified user:", verifiedUser.email);
     } catch (emailError) {
       console.error("Failed to send Welcome Email:", emailError);
+    }
+
+    if (isHtmlRequest) {
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>HireAI - Email Verified Successfully</title>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin:0; background:#090d16; color:#f8fafc; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px;">
+          <div style="background:#0f172a; border:1px solid #334155; padding:40px; border-radius:20px; max-width:460px; width:100%; box-shadow:0 25px 50px -12px rgba(99,102,241,0.25);">
+            <div style="width:60px; height:60px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:28px;">
+              ✅
+            </div>
+            <h2 style="color:#ffffff; margin:0 0 8px; font-size:22px;">Email Verified!</h2>
+            <p style="color:#94a3b8; font-size:14px; line-height:1.6; margin:0 0 24px;">
+              Welcome, <strong style="color:#e2e8f0;">${verifiedUser.username}</strong>! Your account is now active and ready to use.
+            </p>
+            <a href="${clientUrl}/login" style="display:inline-block; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#ffffff; padding:12px 28px; border-radius:12px; text-decoration:none; font-weight:700; font-size:14px; box-shadow:0 10px 15px -3px rgba(99,102,241,0.4);">
+              Sign In to HireAI
+            </a>
+          </div>
+        </body>
+        </html>
+      `);
     }
 
     res.status(200).json({
@@ -149,6 +223,21 @@ export const verifyEmail = async (req, res) => {
 
   } catch (error) {
     console.error("Verification Error:", error);
+    if (isHtmlRequest) {
+      return res.status(500).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>HireAI - Server Error</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+        <body style="margin:0; background:#090d16; color:#f8fafc; font-family:system-ui, sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px;">
+          <div style="background:#0f172a; border:1px solid #1e293b; padding:40px; border-radius:16px; max-width:440px; width:100%;">
+            <h2 style="color:#f43f5e; margin:0 0 10px;">Server Error</h2>
+            <p style="color:#94a3b8; font-size:14px;">An error occurred during verification. Please try again.</p>
+            <a href="${clientUrl}/login" style="display:inline-block; margin-top:20px; background:#6366f1; color:#fff; padding:10px 24px; border-radius:10px; text-decoration:none; font-weight:600; font-size:14px;">Go to Sign In</a>
+          </div>
+        </body>
+        </html>
+      `);
+    }
     res.status(500).json({ message: "Server Error during verification." });
   }
 };
@@ -185,15 +274,16 @@ const resetTokenRecord = await createResetToken (
   expiresAt
 );
 // Send the token to the email
-await sendPasswordResetEmail(
-  user.email,
-  user.username,
-  resetToken
-);
- return res.status(200).json({
-  message: "Password Reset link sent Successfully",
- });
+sendPasswordResetEmail(user.email, user.username, resetToken)
+  .then(() => console.log("✅ Password reset email sent to:", user.email))
+  .catch((err) => console.warn("⚠️ Reset email notice:", err.message));
 
+const clientBaseUrl = (process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/+$/, '');
+console.log(`🔑 Password Reset Link for ${user.email}: ${clientBaseUrl}/reset-password?token=${resetToken}`);
+
+return res.status(200).json({
+  message: "Password Reset link sent Successfully",
+});
 });
 
 export const resetPassword = catchAsync(async (req,res) => {
@@ -240,7 +330,5 @@ await markResetTokenUsed(resetToken.id);
 
 
 });
-
-
 
 
