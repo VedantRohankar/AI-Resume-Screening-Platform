@@ -25,7 +25,7 @@ transporter.verify((error,success)=>{
 
 const sendWelcomeEmail = async (email, name) => {
   const mailOptions = {
-    from: `"HireAI" <${process.env.SMTP_USER}`,
+    from: `"HireAI" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Welcome to HireAI",
     text: `Hello ${name}, welcome to HireAI`,

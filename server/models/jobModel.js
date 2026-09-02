@@ -42,13 +42,17 @@ export const createJob = async (
 };
 
 export const getJobsByCompanyId = async (companyId) => {
-
   const result = await db.query(
     `
-    SELECT *
-    FROM jobs
-    WHERE company_id = $1
-    ORDER BY created_at DESC
+    SELECT 
+      j.*,
+      c.company_name,
+      c.company_logo,
+      (SELECT COUNT(*)::int FROM applications a WHERE a.job_id = j.id) AS applicant_count
+    FROM jobs j
+    LEFT JOIN companies c ON j.company_id = c.id
+    WHERE j.company_id = $1
+    ORDER BY j.created_at DESC
     `,
     [companyId]
   );
@@ -57,13 +61,16 @@ export const getJobsByCompanyId = async (companyId) => {
 };
 
 export const getAllJobs = async () => {
-
   const result = await db.query(
     `
-    SELECT *
-    FROM jobs
-    WHERE status = 'open'
-    ORDER BY created_at DESC
+    SELECT 
+      j.*,
+      c.company_name,
+      c.company_logo
+    FROM jobs j
+    LEFT JOIN companies c ON j.company_id = c.id
+    WHERE j.status = 'open'
+    ORDER BY j.created_at DESC
     `
   );
 
@@ -71,12 +78,17 @@ export const getAllJobs = async () => {
 };
 
 export const getJobById = async (jobId) => {
-
   const result = await db.query(
     `
-    SELECT *
-    FROM jobs
-    WHERE id = $1
+    SELECT 
+      j.*,
+      c.company_name,
+      c.company_logo,
+      c.website AS company_website,
+      c.location AS company_location
+    FROM jobs j
+    LEFT JOIN companies c ON j.company_id = c.id
+    WHERE j.id = $1
     `,
     [jobId]
   );

@@ -48,21 +48,36 @@ const analysis = await analyzeCandidateJobMatch(
   job
   );
 
-  const savedMatch = await createAIJobMatch(
-  applicationId,
-  analysis.match_score,
-  analysis.matched_skills,
-  analysis.missing_skills,
-  analysis.experience_match,
-  analysis.recommendation,
-  analysis.summary,
-  analysis
-);
+  const existingMatch = await getAIJobByApplication(applicationId);
+  let savedMatch;
 
-return res.status(201).json({
-  success: true,
-  message: "AI job match generated successfully",
-  match: savedMatch,
-});
+  if (existingMatch) {
+    savedMatch = await updateAIJobMatch(
+      applicationId,
+      analysis.match_score,
+      analysis.matched_skills,
+      analysis.missing_skills,
+      analysis.experience_match,
+      analysis.recommendation,
+      analysis.summary,
+      analysis
+    );
+  } else {
+    savedMatch = await createAIJobMatch(
+      applicationId,
+      analysis.match_score,
+      analysis.matched_skills,
+      analysis.missing_skills,
+      analysis.experience_match,
+      analysis.recommendation,
+      analysis.summary,
+      analysis
+    );
+  }
 
+  return res.status(200).json({
+    success: true,
+    message: "AI job match generated successfully",
+    match: savedMatch,
+  });
 });

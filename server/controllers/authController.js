@@ -10,7 +10,7 @@ import {createResetToken, findResetToken,markResetTokenUsed} from '../models/pas
 import {sendPasswordResetEmail} from '../services/emailServices.js';
 
 
-export const register = catchAsync( async (req,res)=>{
+export const register = catchAsync(async (req, res, next) => {
     const {username, email, password, role} = req.body;
 
      // Allow only candidate and recruiter roles
@@ -101,6 +101,7 @@ export const login = catchAsync(async (req, res, next) => {
       id: user.id,
       username: user.username,
       email: user.email,
+      role: user.role,
     },
   });
 

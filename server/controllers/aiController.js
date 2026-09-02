@@ -1,4 +1,3 @@
-
 //!Add a temporary test controller
 import { getResumeByCandidateId } from "../models/resumeModel.js";
 import {downloadResume} from '../services/downloadServices.js'
@@ -56,19 +55,6 @@ import {createResumeAnalysis, getResumeAnalysisByResumeId, updateResumeAnalysis}
       savedAnalysis,
     });
 
-    validateResumeAnalysis(analysis);
-    return res.status(200).json({
-      message: "Resume has been Validated",
-      analysis,
-    })
-
-    console.log("Gemini analysis completed");
-
-    return res.status(200).json({
-      message: "Resume analyzed successfully",
-      analysis,
-    });
-
   } catch (error) {
     console.error("AI ANALYSIS ERROR:", error);
 
@@ -109,3 +95,4 @@ export const getResumeAIAnalysis = async (req,res) => {
     });
   }
 }
+
