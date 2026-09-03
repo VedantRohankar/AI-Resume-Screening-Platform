@@ -1,6 +1,12 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import dns from "node:dns";
+
+// Prevent ENETUNREACH IPv6 routing errors on cloud platforms like Render
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder("ipv4first");
+}
 
 import authRoutes from "./routes/authRoutes.js";
 import candidateRoutes from "./routes/candidateRoutes.js";

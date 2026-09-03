@@ -1,5 +1,11 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import dns from 'node:dns';
+
+// Force Node.js to prioritize IPv4 over IPv6 to prevent ENETUNREACH errors on cloud hosts like Render
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 dotenv.config();
 
@@ -14,9 +20,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
-  connectionTimeout: 4000, // 4s timeout prevents indefinite hanging
-  greetingTimeout: 4000,
-  socketTimeout: 5000,
+  family: 4, // Force IPv4 socket connection
+  connectionTimeout: 8000,
+  greetingTimeout: 8000,
+  socketTimeout: 10000,
   tls: {
     rejectUnauthorized: false,
   },
@@ -25,9 +32,9 @@ const transporter = nodemailer.createTransport({
 // Verify connection non-blockingly
 transporter.verify((error, success) => {
   if (error) {
-    console.warn("⚠️ SMTP server warning (emails will attempt background delivery):", error.message);
+    console.warn("⚠️ SMTP server warning (check SMTP credentials/network):", error.message);
   } else {
-    console.log("✅ SMTP server is ready to send emails");
+    console.log("✅ SMTP server is ready to send emails (IPv4)");
   }
 });
 
@@ -61,9 +68,6 @@ const sendVerificationEmail = async (email, name, token) => {
     to: email,
     subject: "Verify your HireAI Account",
     text: `Hello ${name},\n\nWelcome to HireAI! Please verify your email address by opening the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
-
-    text: `Hello ${name}, \n\nWelcome to HireAI! Please verify your email address to activate your account by clicking the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
-
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0b0f19; color: #f1f5f9; padding: 30px; border-radius: 12px; border: 1px solid #1e293b;">
         <h2 style="color: #6366f1; margin-bottom: 8px;">HireAI</h2>
