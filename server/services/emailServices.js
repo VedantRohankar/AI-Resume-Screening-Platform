@@ -2,25 +2,34 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import dns from 'node:dns';
 
-// Force Node.js to prioritize IPv4 over IPv6 to prevent ENETUNREACH errors on cloud hosts like Render
+dotenv.config();
+
+// Enforce IPv4-first globally in Node.js
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-dotenv.config();
+// Custom DNS lookup that explicitly forces family: 4 (IPv4) only
+const ipv4Lookup = (hostname, options, callback) => {
+  return dns.lookup(hostname, { family: 4 }, callback);
+};
 
 const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587;
 const isSecure = port === 465;
+const hasSmtpCredentials = Boolean(process.env.SMTP_USER && process.env.SMTP_PASSWORD);
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: port,
   secure: isSecure,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-  family: 4, // Force IPv4 socket connection
+  auth: hasSmtpCredentials
+    ? {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      }
+    : undefined,
+  lookup: ipv4Lookup, // Forces DNS resolver to return strictly IPv4 addresses (ignoring IPv6)
+  family: 4,
   connectionTimeout: 8000,
   greetingTimeout: 8000,
   socketTimeout: 10000,
@@ -30,15 +39,24 @@ const transporter = nodemailer.createTransport({
 });
 
 // Verify connection non-blockingly
-transporter.verify((error, success) => {
-  if (error) {
-    console.warn("⚠️ SMTP server warning (check SMTP credentials/network):", error.message);
-  } else {
-    console.log("✅ SMTP server is ready to send emails (IPv4)");
-  }
-});
+if (hasSmtpCredentials) {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.warn("⚠️ SMTP server warning (check SMTP credentials on Render):", error.message);
+    } else {
+      console.log("✅ SMTP server is ready to send emails (IPv4 Connected)");
+    }
+  });
+} else {
+  console.log("ℹ️ SMTP credentials not provided. Verification links will be logged directly to console.");
+}
 
 const sendWelcomeEmail = async (email, name) => {
+  if (!hasSmtpCredentials) {
+    console.log(`ℹ️ Welcome email skipped for ${email} (no SMTP credentials configured)`);
+    return;
+  }
+
   const mailOptions = {
     from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
     to: email,
@@ -62,6 +80,11 @@ const sendVerificationEmail = async (email, name, token) => {
   const rawBaseUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
   const baseUrl = rawBaseUrl.replace(/\/+$/, '');
   const verificationLink = `${baseUrl}/api/auth/verify?token=${token}`;
+
+  if (!hasSmtpCredentials) {
+    console.log(`🔑 Verification Link for ${email}: ${verificationLink}`);
+    return;
+  }
 
   const mailOptions = {
     from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
@@ -96,6 +119,11 @@ const sendPasswordResetEmail = async (email, name, token) => {
   const rawBaseUrl = process.env.CLIENT_URL || `http://localhost:${process.env.PORT || 5000}`;
   const baseUrl = rawBaseUrl.replace(/\/+$/, '');
   const resetLink = `${baseUrl}/reset-password?token=${token}`;
+
+  if (!hasSmtpCredentials) {
+    console.log(`🔑 Password Reset Link for ${email}: ${resetLink}`);
+    return;
+  }
 
   const mailOptions = {
     from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
