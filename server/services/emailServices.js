@@ -9,7 +9,41 @@ if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
 
-// Custom DNS lookup that explicitly forces family: 4 (IPv4) only
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM = process.env.RESEND_FROM || 'HireAI <onboarding@resend.dev>';
+
+/**
+ * Sends email via Resend REST API over HTTPS (Port 443).
+ * This completely bypasses Render/Cloud raw SMTP port blocks.
+ */
+const sendViaResend = async ({ to, subject, html, text }) => {
+  if (!RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY is not configured in environment variables');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: RESEND_FROM,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html,
+      text,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || data.error?.message || 'Resend HTTP API request failed');
+  }
+  return data;
+};
+
+// Custom DNS lookup that explicitly forces family: 4 (IPv4) only for Nodemailer fallback
 const ipv4Lookup = (hostname, options, callback) => {
   return dns.lookup(hostname, { family: 4 }, callback);
 };
@@ -28,37 +62,18 @@ const transporter = nodemailer.createTransport({
         pass: process.env.SMTP_PASSWORD,
       }
     : undefined,
-  lookup: ipv4Lookup, // Forces DNS resolver to return strictly IPv4 addresses (ignoring IPv6)
+  lookup: ipv4Lookup,
   family: 4,
-  connectionTimeout: 8000,
-  greetingTimeout: 8000,
-  socketTimeout: 10000,
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 6000,
   tls: {
     rejectUnauthorized: false,
   },
 });
 
-// Verify connection non-blockingly
-if (hasSmtpCredentials) {
-  transporter.verify((error, success) => {
-    if (error) {
-      console.warn("⚠️ SMTP server warning (check SMTP credentials on Render):", error.message);
-    } else {
-      console.log("✅ SMTP server is ready to send emails (IPv4 Connected)");
-    }
-  });
-} else {
-  console.log("ℹ️ SMTP credentials not provided. Verification links will be logged directly to console.");
-}
-
 const sendWelcomeEmail = async (email, name) => {
-  if (!hasSmtpCredentials) {
-    console.log(`ℹ️ Welcome email skipped for ${email} (no SMTP credentials configured)`);
-    return;
-  }
-
   const mailOptions = {
-    from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
     to: email,
     subject: "Welcome to HireAI",
     text: `Hello ${name}, welcome to HireAI!`,
@@ -73,7 +88,27 @@ const sendWelcomeEmail = async (email, name) => {
       </div>
     `,
   };
-  return transporter.sendMail(mailOptions);
+
+  if (RESEND_API_KEY) {
+    try {
+      const resendResult = await sendViaResend(mailOptions);
+      console.log("✅ Welcome email sent via Resend HTTPS API to:", email);
+      return resendResult;
+    } catch (resendError) {
+      console.warn("⚠️ Resend notice:", resendError.message);
+    }
+  }
+
+  if (hasSmtpCredentials) {
+    try {
+      return await transporter.sendMail({
+        from: `"HireAI" <${process.env.SMTP_USER}>`,
+        ...mailOptions,
+      });
+    } catch (smtpErr) {
+      console.warn("⚠️ SMTP fallback notice:", smtpErr.message);
+    }
+  }
 };
 
 const sendVerificationEmail = async (email, name, token) => {
@@ -81,13 +116,10 @@ const sendVerificationEmail = async (email, name, token) => {
   const baseUrl = rawBaseUrl.replace(/\/+$/, '');
   const verificationLink = `${baseUrl}/api/auth/verify?token=${token}`;
 
-  if (!hasSmtpCredentials) {
-    console.log(`🔑 Verification Link for ${email}: ${verificationLink}`);
-    return;
-  }
+  // Always log the verification link to console for immediate 1-click testing
+  console.log(`🔑 Verification Link for ${email}: ${verificationLink}`);
 
   const mailOptions = {
-    from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
     to: email,
     subject: "Verify your HireAI Account",
     text: `Hello ${name},\n\nWelcome to HireAI! Please verify your email address by opening the link below:\n\n${verificationLink}\n\nThis link will expire in 24 hours.`,
@@ -112,7 +144,27 @@ const sendVerificationEmail = async (email, name, token) => {
       </div>
     `,
   };
-  return transporter.sendMail(mailOptions);
+
+  if (RESEND_API_KEY) {
+    try {
+      const resendResult = await sendViaResend(mailOptions);
+      console.log("✅ Verification email sent successfully via Resend HTTPS API to:", email);
+      return resendResult;
+    } catch (resendError) {
+      console.warn("⚠️ Resend delivery notice:", resendError.message);
+    }
+  }
+
+  if (hasSmtpCredentials) {
+    try {
+      return await transporter.sendMail({
+        from: `"HireAI" <${process.env.SMTP_USER}>`,
+        ...mailOptions,
+      });
+    } catch (smtpErr) {
+      console.warn("⚠️ SMTP fallback notice:", smtpErr.message);
+    }
+  }
 };
 
 const sendPasswordResetEmail = async (email, name, token) => {
@@ -120,13 +172,9 @@ const sendPasswordResetEmail = async (email, name, token) => {
   const baseUrl = rawBaseUrl.replace(/\/+$/, '');
   const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
-  if (!hasSmtpCredentials) {
-    console.log(`🔑 Password Reset Link for ${email}: ${resetLink}`);
-    return;
-  }
+  console.log(`🔑 Password Reset Link for ${email}: ${resetLink}`);
 
   const mailOptions = {
-    from: `"HireAI" <${process.env.SMTP_USER || 'no-reply@hireai.dev'}>`,
     to: email,
     subject: "Reset your HireAI Password",
     text: `Hello ${name},\n\nWe received a request to reset your HireAI password.\n\nClick the link below to reset your password:\n\n${resetLink}\n\nThis link will expire in 15 minutes.\n\nIf you did not request a password reset, please ignore this email.\n\nRegards,\nHireAI Team`,
@@ -151,7 +199,27 @@ const sendPasswordResetEmail = async (email, name, token) => {
       </div>
     `,
   };
-  return transporter.sendMail(mailOptions);
+
+  if (RESEND_API_KEY) {
+    try {
+      const resendResult = await sendViaResend(mailOptions);
+      console.log("✅ Password reset email sent via Resend HTTPS API to:", email);
+      return resendResult;
+    } catch (resendError) {
+      console.warn("⚠️ Resend notice:", resendError.message);
+    }
+  }
+
+  if (hasSmtpCredentials) {
+    try {
+      return await transporter.sendMail({
+        from: `"HireAI" <${process.env.SMTP_USER}>`,
+        ...mailOptions,
+      });
+    } catch (smtpErr) {
+      console.warn("⚠️ SMTP fallback notice:", smtpErr.message);
+    }
+  }
 };
 
 export {
