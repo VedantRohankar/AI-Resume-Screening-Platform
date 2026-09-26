@@ -1,13 +1,19 @@
-import {BrowserRouter, Router, Route, Routes} from 'react-router-dom';
-import Register from './pages/Register';
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
+import AppRoutes from './routes/AppRoutes.jsx';
+
 function App() {
   return (
     <BrowserRouter>
-    <Routes>
-      <Route path='/' element={<h1>HireAI Home</h1>}/>
-      <Route path='/login' element={<h1>Login</h1>}/>
-      <Route path='/register' element={<Register/>}/>
-    </Routes>
+      <AuthProvider>
+        <ToastProvider>
+          <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
+            <AppRoutes />
+          </div>
+        </ToastProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
